@@ -1,53 +1,40 @@
 ARCH               = $(or $(shell printenv ARCH),$(shell echo linux/amd64,linux/arm64,linux/arm/v7))
+BUILD_FLAGS        = $(or $(shell printenv BUILD_FLAGS),--pull)
 CREATED            = $(or $(shell printenv CREATED),$(shell date --rfc-3339=seconds))
+DISTS              = $(or $(shell printenv DISTS),alpine debian ubuntu)
 DOCKER_INTERACTIVE = $(if $(shell printenv GITHUB_ACTIONS),-t,-it)
 IMAGE              = $(or $(shell printenv IMAGE),cewood/offlineimap)
 GIT_REVISION       = $(or $(shell printenv GIT_REVISION), $(shell git describe --match= --always --abbrev=7 --dirty))
 
 
 .PHONY: dists
-dists: alpine debian ubuntu
-
-.PHONY: ubuntu
-ubuntu:
-	$(MAKE) build-load DIST=ubuntu
-
-.PHONY: debian
-debian:
-	$(MAKE) build-load DIST=debian
+dists: $(patsubst %,build-%,${DISTS})
 
 .PHONY: alpine
-alpine:
-	$(MAKE) build-load DIST=alpine
+alpine: build-alpine
+
+.PHONY: debian
+debian: build-debian
+
+.PHONY: ubuntu
+ubuntu: build-ubuntu
+
+.PHONY: build-%
+build-%:
+	$(MAKE) build DIST=$*
 
 .PHONY: build
 build:
 	DOCKER_CLI_EXPERIMENTAL=enabled \
 	docker \
 	  buildx build \
+	  ${BUILD_FLAGS} \
+	  --build-arg CREATED="${CREATED}" \
+	  --build-arg REVISION="${GIT_REVISION}" \
 	  --platform ${ARCH} \
-	  --build-arg REVISION="${GIT_REVISION}" \
-	  --build-arg CREATED="${CREATED}" \
 	  --tag cewood/offlineimap:${DIST}_${GIT_REVISION} \
 	  -f Dockerfile-${DIST} \
 	  .
-
-.PHONY: load
-load:
-	DOCKER_CLI_EXPERIMENTAL=enabled \
-	docker \
-	  buildx build \
-	  --build-arg REVISION="${GIT_REVISION}" \
-	  --build-arg CREATED="${CREATED}" \
-	  --tag cewood/offlineimap:${DIST}_${GIT_REVISION} \
-	  -f Dockerfile-${DIST} \
-	  --load \
-	  .
-
-.PHONY: build-load
-build-load:
-	$(MAKE) build DIST="${DIST}" CREATED="${CREATED}"
-	$(MAKE) load DIST="${DIST}" CREATED="${CREATED}"
 
 .PHONY: inspect
 inspect:
@@ -69,3 +56,7 @@ buildx-setup:
 	  create \
 	  --use \
 	  --name multiarch
+
+.PHONY: ci
+ci:
+	$(MAKE) dists BUILD_FLAGS=$(if $(findstring tags,${GITHUB_REF}),--push,--pull)
