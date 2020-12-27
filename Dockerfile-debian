@@ -1,0 +1,39 @@
+FROM --platform=$TARGETPLATFORM debian:10.7-slim
+
+ARG TARGETARCH
+ARG TARGETPLATFORM
+ARG TARGETVARIANT
+
+ENV OFFLINEIMAP_VERSION="7.2.3+dfsg1-1" \
+    CURL_VERSION="7.64.0-4+deb10u1" \
+    CA_CERTIFICATES_VERSION="20190110" \
+    PROCPS_VERSION="2:3.3.15-2"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update \
+ && apt-get --no-install-recommends --yes install \
+      offlineimap="${OFFLINEIMAP_VERSION}" \
+      ca-certificates="${CA_CERTIFICATES_VERSION}" \
+      curl="${CURL_VERSION}" \
+      procps="${PROCPS_VERSION}" \
+ && useradd --home-dir /workdir --no-create-home offlineimap \
+ && rm -rf /var/cache/apt
+
+ENV SUPERCRONIC_VERSION=v0.1.12
+ENV SUPERCRONIC_URL="https://github.com/aptible/supercronic/releases/download/${SUPERCRONIC_VERSION}/supercronic-linux-${TARGETARCH}" \
+    SUPERCRONIC="supercronic-linux-${TARGETARCH}" \
+    SUPERCRONIC_SHA1SUM="SUPERCRONIC_SHA1SUM_${TARGETARCH}" \
+    SUPERCRONIC_SHA1SUM_amd64="048b95b48b708983effb2e5c935a1ef8483d9e3e" \
+    SUPERCRONIC_SHA1SUM_arm64="8baba3dd0b0b13552aca179f6ef10d55e5dee28b" \
+    SUPERCRONIC_SHA1SUM_arm="d72d3d40065c0188b3f1a0e38fe6fecaa098aad5"
+
+RUN curl -kfsSLO "${SUPERCRONIC_URL}" \
+ && echo "${!SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - \
+ && chmod +x "${SUPERCRONIC}" \
+ && mv "${SUPERCRONIC}" "/usr/local/bin/${SUPERCRONIC}" \
+ && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
+
+COPY crontab /etc/crontab
+
+USER offlineimap
