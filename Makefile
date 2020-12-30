@@ -11,13 +11,13 @@ GIT_REVISION       = $(or $(shell printenv GIT_REVISION), $(shell git describe -
 dists: $(patsubst %,build-%,${DISTS})
 
 .PHONY: alpine
-alpine: build-alpine
+alpine: build-alpine load-alpine dive-alpine
 
 .PHONY: debian
-debian: build-debian
+debian: build-debian load-debian dive-debian
 
 .PHONY: ubuntu
-ubuntu: build-ubuntu
+ubuntu: build-ubuntu load-ubuntu dive-ubuntu
 
 .PHONY: build-%
 build-%:
@@ -32,13 +32,21 @@ build:
 	  --build-arg CREATED="${CREATED}" \
 	  --build-arg REVISION="${GIT_REVISION}" \
 	  --platform ${ARCH} \
-	  --tag cewood/offlineimap:${DIST}_${GIT_REVISION} \
+	  --tag ${IMAGE}:${DIST}_${GIT_REVISION} \
 	  -f Dockerfile-${DIST} \
 	  .
 
+.PHONY: load-%
+load-%:
+	$(MAKE) load DIST=$*
+
+.PHONY: load
+load:
+	$(MAKE) build DIST=${DIST} BUILD_FLAGS=--load ARCH=linux/amd64
+
 .PHONY: inspect
 inspect:
-	docker inspect cewood/offlineimap:${DIST}_${GIT_REVISION}
+	docker inspect ${IMAGE}:${DIST}_${GIT_REVISION}
 
 .PHONY: binfmt-setup
 binfmt-setup:
@@ -56,6 +64,17 @@ buildx-setup:
 	  create \
 	  --use \
 	  --name multiarch
+
+.PHONY: dive-%
+dive-%:
+	$(MAKE) dive DIST=$*
+
+.PHONY: dive
+dive:
+	docker run --rm -it \
+	  -e CI=true \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  wagoodman/dive:v0.9.2 ${IMAGE}:${DIST}_${GIT_REVISION}
 
 .PHONY: ci
 ci:
