@@ -18,8 +18,8 @@ RUN apk add --no-cache \
       curl="${CURL_VERSION}" \
       procps="${PROCPS_VERSION}" \
       bash="${BASH_VERSION}" \
- && addgroup -S offlineimap \
- && adduser offlineimap -G offlineimap -D -H -h /workdir
+ && addgroup offlineimap \
+ && adduser offlineimap -G offlineimap -D -h /workdir
 
 ENV SUPERCRONIC_VERSION=v0.1.12
 ENV SUPERCRONIC_URL="https://github.com/aptible/supercronic/releases/download/${SUPERCRONIC_VERSION}/supercronic-linux-${TARGETARCH}" \
@@ -47,9 +47,9 @@ ARG CREATED
 ARG REVISION=HEAD
 
 LABEL org.opencontainers.image.authors="https://github.com/cewood" \
-  org.opencontainers.image.created="${CREATED}" \
-  org.opencontainers.image.licenses="MIT" \
-  org.opencontainers.image.revision="${REVISION}" \
-  org.opencontainers.image.source="https://github.com/cewood/offlineimap-docker/tree/${REVISION}" \
-  org.opencontainers.image.title="cewood/offlineimap" \
-  org.opencontainers.image.url="https://github.com/cewood/offlineimap-docker"
+      org.opencontainers.image.created="${CREATED}" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.source="https://github.com/cewood/offlineimap-docker/tree/${REVISION}" \
+      org.opencontainers.image.title="cewood/offlineimap" \
+      org.opencontainers.image.url="https://github.com/cewood/offlineimap-docker"
